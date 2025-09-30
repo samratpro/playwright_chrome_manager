@@ -22,7 +22,7 @@ The project includes a `ChromeManager` class that handles launching browsers, co
 ## Installation
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/your-username/chrome-manager.git
+   git clone https://github.com/samratpro/playwright_chrome_manager.git
    cd chrome-manager
    ```
 
