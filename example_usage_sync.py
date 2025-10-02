@@ -56,16 +56,17 @@ else:
 
 
 with ChromeManager() as manager:
-    page = manager.connect_to_browser(profile_name=profile_name, url="https://www.facebook.com")
+    page = manager.connect_to_browser(profile_name=profile_name, url="https://www.facebook.com", timeout=120000)
     print("Page Title:", page.title())
     input("Press Enter to close the browser...")
     page.close()
     manager.close_browser()
 
 with ChromeManager() as manager:
-    page = manager.connect_to_browser(profile_name=profile_name2, url="https://www.facebook.com")
+    page = manager.connect_to_browser(profile_name=profile_name2, url="https://www.facebook.com", timeout=120000)
     print("Page Title:", page.title())
     input("Press Enter to close the browser...")
     page.close()
     manager.close_browser()
+
 
