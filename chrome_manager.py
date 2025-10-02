@@ -127,7 +127,7 @@ class ChromeManager:
         self.close_browser()
         print(f"✅ Profile '{profile_name}' saved.")
 
-    def connect_to_browser(self, profile_name, url=None, headless=False):
+    def connect_to_browser(self, profile_name, url=None, headless=False, timeout=60000):
         """Start browser with the specified profile and connect via Playwright."""
         if not self.profile_exists(profile_name):
             raise ValueError(f"Profile '{profile_name}' does not exist. Create it first.")
@@ -153,8 +153,8 @@ class ChromeManager:
             contexts = self.browser.contexts
             self.page = contexts[0].pages[0] if contexts and contexts[0].pages else self.browser.new_page()
             if url:
-                self.page.goto(url, timeout=60000)
-                self.page.wait_for_load_state('load', timeout=60000)
+                self.page.goto(url, timeout=timeout)
+                self.page.wait_for_load_state('load', timeout=timeout)
             return self.page
         except Exception as e:
             print(f"Failed to connect to browser: {e}")
@@ -205,4 +205,5 @@ class ChromeManager:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close_browser()
+
         return False
