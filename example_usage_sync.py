@@ -1,8 +1,8 @@
 from chrome_manager import ChromeManager
 import time
 
-
-manager = ChromeManager()
+debug_port=9221 # 9222, 9223
+manager = ChromeManager(debug_port)
 
 # Check if profiles exist, setup/update if needed
 profile_name = "my_facebook_profile"
@@ -55,18 +55,17 @@ else:
 # manager.close_browser()
 
 
-with ChromeManager() as manager:
-    page = manager.connect_to_browser(profile_name=profile_name, url="https://www.facebook.com", timeout=120000)
+with ChromeManager(debug_port=debug_port) as manager:
+    page = manager.connect_to_browser(profile_name=profile_name, url="https://www.facebook.com")
     print("Page Title:", page.title())
     input("Press Enter to close the browser...")
     page.close()
     manager.close_browser()
 
-with ChromeManager() as manager:
-    page = manager.connect_to_browser(profile_name=profile_name2, url="https://www.facebook.com", timeout=120000)
+with ChromeManager(debug_port=debug_port) as manager:
+    page = manager.connect_to_browser(profile_name=profile_name2, url="https://www.facebook.com")
     print("Page Title:", page.title())
     input("Press Enter to close the browser...")
     page.close()
     manager.close_browser()
-
 
