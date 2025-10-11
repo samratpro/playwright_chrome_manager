@@ -27,52 +27,101 @@ class ChromeManager:
         self.process_pid = None
 
     def _find_browser_path(self):
-        """Find browser executable path."""
-        if platform.system() == "Darwin":  # macOS
+        """Find browser executable path with priority: Brave > Edge > Chrome > Chromium."""
+        system = platform.system()
+        possible_paths = []
+
+        if system == "Darwin":  # macOS
             possible_paths = [
-                "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+                # Brave
+                "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+                os.path.expanduser("~/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"),
+                # Edge
                 "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
-                os.path.expanduser("~/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
                 os.path.expanduser("~/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"),
+                # Chrome
+                "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+                os.path.expanduser("~/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
+                # Chromium
+                "/Applications/Chromium.app/Contents/MacOS/Chromium",
+                os.path.expanduser("~/Applications/Chromium.app/Contents/MacOS/Chromium"),
             ]
-        else:  # Windows
+        elif system == "Windows":  # Windows
             possible_paths = [
-                r"C:\Program Files\Google\Chrome\Application\chrome.exe",
-                r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
-                os.path.expanduser(r"~\AppData\Local\Google\Chrome\Application\chrome.exe"),
+                # Brave
+                r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe",
+                r"C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe",
+                os.path.expanduser(r"~\AppData\Local\BraveSoftware\Brave-Browser\Application\brave.exe"),
+                # Edge
                 r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
                 r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
                 os.path.expanduser(r"~\AppData\Local\Microsoft\Edge\Application\msedge.exe"),
+                # Chrome
+                r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+                r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+                os.path.expanduser(r"~\AppData\Local\Google\Chrome\Application\chrome.exe"),
+                # Chromium
+                r"C:\Program Files\Chromium\Application\chromium.exe",
+                r"C:\Program Files (x86)\Chromium\Application\chromium.exe",
+                os.path.expanduser(r"~\AppData\Local\Chromium\Application\chromium.exe"),
+            ]
+        elif system == "Linux":  # Linux
+            possible_paths = [
+                # Brave
+                "/usr/bin/brave-browser",
+                "/usr/bin/brave",
+                "/usr/local/bin/brave-browser",
+                "/usr/local/bin/brave",
+                os.path.expanduser("~/.local/bin/brave-browser"),
+                # Edge
+                "/usr/bin/microsoft-edge",
+                "/usr/bin/microsoft-edge-stable",
+                "/usr/local/bin/microsoft-edge",
+                # Chrome
+                "/usr/bin/google-chrome",
+                "/usr/bin/google-chrome-stable",
+                "/usr/local/bin/google-chrome",
+                # Chromium
+                "/usr/bin/chromium",
+                "/usr/bin/chromium-browser",
+                "/usr/local/bin/chromium",
+                os.path.expanduser("~/.local/bin/chromium"),
             ]
 
-        # Check standard locations first
+        # Debug: Print all paths being checked
+        print("Checking browser paths:")
         for path in possible_paths:
-            if os.path.exists(path):
-                print(f"✅ Found Chrome at: {path}")
+            exists = os.path.exists(path)
+            print(f"  - {path}: {'Found' if exists else 'Not found'}")
+            if exists:
+                print(f"✅ Selected browser at: {path}")
                 return path
 
         # If not found, prompt user
-        print("❌ Chrome executable not found. Please input your Chrome path.")
-        if platform.system() == "Darwin":
-            print("Example: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
-        else:
-            print("Example: C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe")
+        print("❌ Browser executable not found. Please input your browser path.")
+        if system == "Darwin":
+            print("Example: /Applications/Brave Browser.app/Contents/MacOS/Brave Browser")
+        elif system == "Windows":
+            print("Example: C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe")
+        else:  # Linux
+            print("Example: /usr/bin/brave-browser")
 
         while True:
-            user_path = input("Enter Chrome path: ").strip().strip('"')
+            user_path = input("Enter browser path: ").strip().strip('"')
             if not user_path:
                 print("❌ Path cannot be empty. Please try again.")
                 continue
             if os.path.exists(user_path):
-                if user_path.lower().endswith(('chrome', 'chrome.exe', 'msedge', 'msedge.exe')):
-                    print(f"✅ Chrome/Edge path verified: {user_path}")
+                if any(user_path.lower().endswith(ext) for ext in ('brave', 'brave.exe', 'msedge', 'msedge.exe',
+                                                                   'chrome', 'chrome.exe', 'chromium', 'chromium.exe')):
+                    print(f"✅ Browser path verified: {user_path}")
                     return user_path
-                print("❌ Path should point to Chrome or Edge executable. Please try again.")
+                print("❌ Path should point to Brave, Edge, Chrome, or Chromium executable. Please try again.")
                 continue
             print(f"❌ File not found at: {user_path}")
             retry = input("Would you like to try again? (y/n): ").lower().strip()
             if retry not in ['y', 'yes']:
-                raise FileNotFoundError("❌ Chrome path not found. Exiting...")
+                raise FileNotFoundError("❌ Browser path not found. Exiting...")
 
     def _is_port_open(self, port):
         """Check if the specified port is available."""
@@ -205,5 +254,4 @@ class ChromeManager:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close_browser()
-
         return False
