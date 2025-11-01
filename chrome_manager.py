@@ -190,6 +190,15 @@ class ChromeManager:
             "--no-first-run",
             "--no-default-browser-check"
         ]
+        """
+        example PowerShell command here:
+            & "C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe" `
+              --remote-debugging-port=9222 `
+              --user-data-dir="C:\ChromeProfiles\wp_profile_jobboardai" `
+              --no-first-run `
+              --no-default-browser-check `
+              "https://docs.python.org/3/library/subprocess.html"
+        """
         if headless:
             args.append("--headless=new")
         self.browser_process = subprocess.Popen(args, shell=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -255,3 +264,4 @@ class ChromeManager:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close_browser()
         return False
+
