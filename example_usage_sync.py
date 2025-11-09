@@ -1,4 +1,5 @@
-from playwright_chrome_manager.chrome_manager import ChromeManager
+# from playwright_chrome_manager.chrome_manager import ChromeManager
+from chrome_manager import ChromeManager
 import time
 
 debug_port=9221 # 9222, 9223
@@ -68,6 +69,7 @@ with ChromeManager(debug_port=debug_port) as manager:
     input("Press Enter to close the browser...")
     page.close()
     manager.close_browser()
+
 
 
 
