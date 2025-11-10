@@ -58,9 +58,11 @@ else:
 
 with ChromeManager(debug_port=debug_port) as manager:
     page = manager.connect_to_browser(profile_name=profile_name, url="https://www.facebook.com")
-    print("Page Title:", page.title())
+    context = page.context
+    search_page = context.new_page()
+    print("Page Title:", search_page.title())
     input("Press Enter to close the browser...")
-    page.close()
+    search_page.close()
     manager.close_browser()
 
 with ChromeManager(debug_port=debug_port) as manager:
@@ -69,6 +71,7 @@ with ChromeManager(debug_port=debug_port) as manager:
     input("Press Enter to close the browser...")
     page.close()
     manager.close_browser()
+
 
 
 
