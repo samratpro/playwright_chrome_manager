@@ -218,6 +218,51 @@ class ChromeManager:
             print(f"Failed to connect to browser: {e}")
             self.close_browser()
             raise
+            
+        async def connect_to_browser_async(self, profile_name, url=None, headless=False, timeout=60000):
+            """Start browser with the specified profile and connect via Playwright (async)."""
+            if not self.profile_exists(profile_name):
+                raise ValueError(f"Profile '{profile_name}' does not exist. Create it first.")
+            if not self._is_port_open(self.debug_port):
+                raise RuntimeError(f"Port {self.debug_port} is in use. Choose another port.")
+            user_data_dir = self.get_profile_path(profile_name)
+            args = [
+                self.browser_path,
+                f"--remote-debugging-port={self.debug_port}",
+                f"--user-data-dir={user_data_dir}",
+                "--no-first-run",
+                "--no-default-browser-check",
+                "--disable-features=BraveShields",
+                "--brave-ads-service-enabled=0",
+            ]
+            if headless:
+                args.append("--headless=new")
+            self.browser_process = subprocess.Popen(args, shell=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                                    stderr=subprocess.PIPE)
+            self.process_pid = self.browser_process.pid
+            print(f"✅ Browser started for profile '{profile_name}' (PID: {self.process_pid}).")
+    
+            # Wait a moment for browser to start
+            time.sleep(2)
+    
+            try:
+                self.playwright_instance = await async_playwright().start()
+                self.browser = await self.playwright_instance.chromium.connect_over_cdp(
+                    f"http://127.0.0.1:{self.debug_port}")
+                contexts = self.browser.contexts
+                if contexts and contexts[0].pages:
+                    self.page = contexts[0].pages[0]
+                else:
+                    self.page = await self.browser.new_page()
+    
+                if url:
+                    await self.page.goto(url, timeout=timeout)
+                    await self.page.wait_for_load_state('load', timeout=timeout)
+                return self.page
+            except Exception as e:
+                print(f"Failed to connect to browser: {e}")
+                await self.close_browser_async()
+                raise
 
     def close_browser(self):
         """Close the browser and clean up all resources."""
@@ -258,10 +303,50 @@ class ChromeManager:
             self.process_pid = None
         print("✅ Browser closed.")
 
+        async def close_browser_async(self):
+            """Close the browser and clean up all resources (async)."""
+            if self.page:
+                try:
+                    await self.page.close()
+                    print("Closed page")
+                except Exception as e:
+                    print(f"Error closing page: {e}")
+                self.page = None
+            if self.browser:
+                try:
+                    await self.browser.close()
+                    print("Closed Playwright browser instance")
+                except Exception as e:
+                    print(f"Error closing browser: {e}")
+                self.browser = None
+            if self.playwright_instance:
+                try:
+                    await self.playwright_instance.stop()
+                    print("Stopped Playwright instance")
+                except Exception as e:
+                    print(f"Error stopping Playwright: {e}")
+                self.playwright_instance = None
+            if self.browser_process and self.process_pid:
+                try:
+                    self._kill_child_processes(self.process_pid)
+                except Exception as e:
+                    print(f"Error killing browser process: {e}")
+                finally:
+                    try:
+                        self.browser_process.stdin.close()
+                        self.browser_process.stdout.close()
+                        self.browser_process.stderr.close()
+                    except Exception:
+                        pass
+                self.browser_process = None
+                self.process_pid = None
+            print("✅ Browser closed.")
+
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close_browser()
         return False
+
 
