@@ -1,6 +1,64 @@
 """
+Example multi tab process to collect data fast
+"""
+import csv
+import asyncio
+from playwright_chrome_manager.chrome_manager import ChromeManager
+
+csv_path = "data.csv"
+async def scrape_single_link(semaphore, context, link):
+    """Scrape a single link - truly runs in parallel"""
+    async with semaphore:  # Limit to 10 concurrent tabs
+        scraper_page = None
+        scraper_page = await context.new_page()
+        await scraper_page.goto(link, timeout=20000, wait_until="domcontentloaded")
+        # Write to CSV get data and write csv
+        with open(csv_path, "a", newline="", encoding="utf-8") as csv_file:
+            writer = csv.writer(csv_file)
+            writer.writerow(['link', 'size', 'price', 'location', 'phone'])
+
+async def main():
+    """Main async function"""
+    # Load links
+    with open("links.txt", 'r') as file:
+        all_links = file.readlines()
+        all_links = [x.strip() for x in all_links]
+    # Prepare CSV with header
+    with open(csv_path, "w", newline="", encoding="utf-8") as csv_file:
+        writer = csv.writer(csv_file)
+        writer.writerow(["URL", "Size", "Price", "Location", "Phone"])
+    # Setup browser using YOUR ChromeManager (async version)
+    debug_port = 9221
+    profile_name = "my_facebook_profile"
+    manager = ChromeManager(debug_port=debug_port)
+    page = await manager.connect_to_browser_async(profile_name, "https://www.example.com/", headless=False,timeout=60000)
+    context = page.context
+    print(f"Starting to scrape {len(all_links)} links with 10 concurrent tabs...")
+    # Create semaphore to limit to 10 concurrent tabs
+    semaphore = asyncio.Semaphore(10)
+    # Create all tasks
+    tasks = []
+    for link in all_links:
+        task = scrape_single_link(semaphore, context, link)
+        tasks.append(task)
+    # Run all tasks concurrently (semaphore limits to 10 at a time)
+    results = await asyncio.gather(*tasks)
+    completed = len(results)
+    success = sum(1 for _, status in results if status == "Success")
+    errors = sum(1 for _, status in results if status == "Error")
+    print(f"\n{'=' * 60}\n✅ Finished!")
+    print(f"Total: {completed} | Success: {success} | Errors: {errors}")
+    print(f"CSV saved as {csv_path}")
+    print(f"{'=' * 60}")
+    await manager.close_browser_async()
+
+if __name__ == '__main__':
+    asyncio.run(main())
+
+"""
 Async Chrome Manager Use Cases - Multiple Tabs/Pages
 """
+
 import asyncio
 from chrome_manager import ChromeManager
 from playwright.async_api import async_playwright
