@@ -3,7 +3,7 @@ Example multi tab process to collect data fast
 """
 import csv
 import asyncio
-from playwright_chrome_manager.chrome_manager import ChromeManager
+from playwright_browser_manager.browser_manager import BrowserManager
 
 csv_path = "data.csv"
 async def scrape_single_link(semaphore, context, link):
@@ -27,10 +27,10 @@ async def main():
     with open(csv_path, "w", newline="", encoding="utf-8") as csv_file:
         writer = csv.writer(csv_file)
         writer.writerow(["URL", "Size", "Price", "Location", "Phone"])
-    # Setup browser using YOUR ChromeManager (async version)
+    # Setup browser using YOUR BrowserManager (async version)
     debug_port = 9221
     profile_name = "my_facebook_profile"
-    manager = ChromeManager(debug_port=debug_port)
+    manager = BrowserManager(debug_port=debug_port)
     page = await manager.connect_to_browser_async(profile_name, "https://www.example.com/", headless=False,timeout=60000)
     context = page.context
     print(f"Starting to scrape {len(all_links)} links with 10 concurrent tabs...")
@@ -60,7 +60,7 @@ Async Chrome Manager Use Cases - Multiple Tabs/Pages
 """
 
 import asyncio
-from chrome_manager import ChromeManager
+from playwright_browser_manager.browser_manager import BrowserManager
 from playwright.async_api import async_playwright
 
 # ============================================================================
@@ -74,7 +74,7 @@ async def use_case_1_multiple_tabs_same_profile():
     debug_port = 9221
     profile_name = "my_facebook_profile"
     
-    manager = ChromeManager(debug_port=debug_port)
+    manager = BrowserManager(debug_port=debug_port)
     
     try:
         # Connect to browser with the profile
@@ -141,7 +141,7 @@ async def use_case_2_multiple_profiles_multiple_tabs():
     
     async def manage_profile(profile_name, debug_port, urls):
         """Manage a single profile with multiple tabs"""
-        manager = ChromeManager(debug_port=debug_port)
+        manager = BrowserManager(debug_port=debug_port)
         
         try:
             # Connect to browser
@@ -221,7 +221,7 @@ async def use_case_3_sequential_tab_processing():
     debug_port = 9221
     profile_name = "my_facebook_profile"
     
-    manager = ChromeManager(debug_port=debug_port)
+    manager = BrowserManager(debug_port=debug_port)
     
     try:
         page = await manager.connect_to_browser_async(
@@ -269,7 +269,7 @@ async def use_case_4_dynamic_tab_management():
     debug_port = 9221
     profile_name = "my_facebook_profile"
     
-    manager = ChromeManager(debug_port=debug_port)
+    manager = BrowserManager(debug_port=debug_port)
     
     try:
         page = await manager.connect_to_browser_async(
@@ -335,7 +335,7 @@ async def use_case_5_multi_account_posting():
     
     async def post_to_account(profile_name, debug_port, post_targets):
         """Post to multiple targets in one account"""
-        manager = ChromeManager(debug_port=debug_port)
+        manager = BrowserManager(debug_port=debug_port)
         
         try:
             page = await manager.connect_to_browser_async(
@@ -418,7 +418,7 @@ async def use_case_6_tab_pool_management():
     debug_port = 9221
     profile_name = "my_facebook_profile"
     
-    manager = ChromeManager(debug_port=debug_port)
+    manager = BrowserManager(debug_port=debug_port)
     
     try:
         page = await manager.connect_to_browser_async(
