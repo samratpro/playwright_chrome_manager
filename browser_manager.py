@@ -33,55 +33,68 @@ class BrowserManager:
 
         if system == "Darwin":  # macOS
             possible_paths = [
-                # Brave
+                # 1. Brave
                 "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
                 os.path.expanduser("~/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"),
-                # Edge
+                # 2. Comet
+                "/Applications/Comet Browser.app/Contents/MacOS/Comet Browser",
+                os.path.expanduser("~/Applications/Comet Browser.app/Contents/MacOS/Comet Browser"),
+                # 3. Edge
                 "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
                 os.path.expanduser("~/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"),
-                # Chrome
+                # 4. Chrome
                 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
                 os.path.expanduser("~/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
-                # Chromium
+                # 5. Chromium
                 "/Applications/Chromium.app/Contents/MacOS/Chromium",
                 os.path.expanduser("~/Applications/Chromium.app/Contents/MacOS/Chromium"),
             ]
         elif system == "Windows":  # Windows
             possible_paths = [
-                # Brave
+                # 1. Brave
                 r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe",
                 r"C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe",
                 os.path.expanduser(r"~\AppData\Local\BraveSoftware\Brave-Browser\Application\brave.exe"),
-                # Edge
+                # 2. Comet
+                r"C:\Program Files\CometBrowser\Application\comet.exe",
+                r"C:\Program Files (x86)\CometBrowser\Application\comet.exe",
+                os.path.expanduser(r"~\AppData\Local\CometBrowser\Application\comet.exe"),
+                # 3. Edge
                 r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
                 r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
                 os.path.expanduser(r"~\AppData\Local\Microsoft\Edge\Application\msedge.exe"),
-                # Chrome
+                # 4. Chrome
                 r"C:\Program Files\Google\Chrome\Application\chrome.exe",
                 r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
                 os.path.expanduser(r"~\AppData\Local\Google\Chrome\Application\chrome.exe"),
-                # Chromium
+                # 5. Chromium
                 r"C:\Program Files\Chromium\Application\chromium.exe",
                 r"C:\Program Files (x86)\Chromium\Application\chromium.exe",
                 os.path.expanduser(r"~\AppData\Local\Chromium\Application\chromium.exe"),
             ]
         elif system == "Linux":  # Linux
             possible_paths = [
-                # Brave
+                # 1. Brave
                 "/usr/bin/brave-browser",
                 "/usr/bin/brave",
                 "/usr/local/bin/brave-browser",
                 "/usr/local/bin/brave",
                 os.path.expanduser("~/.local/bin/brave-browser"),
-                # Edge
+                # 2. Comet
+                "/usr/bin/comet-browser",
+                "/usr/bin/comet",
+                "/usr/local/bin/comet-browser",
+                "/usr/local/bin/comet",
+                os.path.expanduser("~/.local/bin/comet-browser"),
+                # 3. Edge
                 "/usr/bin/microsoft-edge",
                 "/usr/bin/microsoft-edge-stable",
                 "/usr/local/bin/microsoft-edge",
-                # Chrome
+                # 4. Chrome
                 "/usr/bin/google-chrome",
                 "/usr/bin/google-chrome-stable",
                 "/usr/local/bin/google-chrome",
-                # Chromium
+                # 5. Chromium
                 "/usr/bin/chromium",
                 "/usr/bin/chromium-browser",
                 "/usr/local/bin/chromium",
@@ -348,6 +361,7 @@ class BrowserManager:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close_browser()
         return False
+
 
 
 
