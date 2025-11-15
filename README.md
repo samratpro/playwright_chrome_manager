@@ -1,8 +1,8 @@
-# ChromeManager for Browser Automation
+# BrowserManager for Browser Automation
 
-**ChromeManager** is a Python utility for automating browser interactions using Playwright. It allows you to create, manage, and reuse browser profiles (with persistent sessions) to interact with websites programmatically. This is particularly useful for tasks like web scraping, automated testing, or managing logged-in sessions across multiple websites.
+**BrowserManager** is a Python utility for automating browser interactions using Playwright. It allows you to create, manage, and reuse browser profiles (with persistent sessions) to interact with websites programmatically. This is particularly useful for tasks like web scraping, automated testing, or managing logged-in sessions across multiple websites.
 
-The project includes a `ChromeManager` class that handles launching browsers, connecting to them via Playwright, and ensuring proper cleanup of browser processes and Playwright resources. It supports both Chrome and Edge browsers on Windows and macOS.
+The project includes a `BrowserManager` class that handles launching browsers, connecting to them via Playwright, and ensuring proper cleanup of browser processes and Playwright resources. It supports both Chrome and Edge browsers on Windows and macOS.
 
 ## Features
 - **Persistent Browser Profiles**: Save and reuse browser sessions (e.g., logged-in states) for websites like Facebook or Twitter.
@@ -44,7 +44,7 @@ The project includes a `ChromeManager` class that handles launching browsers, co
    - If the browser is not found, the script will prompt you to provide the path.
 
 ## Usage
-The `ChromeManager` class provides methods to set up browser profiles, connect to browsers, and perform automated tasks. The `example_usage_sync.py` script demonstrates how to use it.
+The `BrowserManager` class provides methods to set up browser profiles, connect to browsers, and perform automated tasks. The `example_usage_sync.py` script demonstrates how to use it.
 
 ### Example: Setting Up and Using Browser Profiles
 1. **Create or Update Profiles**:
@@ -83,7 +83,7 @@ The `ChromeManager` class provides methods to set up browser profiles, connect t
    ```
 
 ### Key Files
-- **`chrome_manager.py`**: The core `ChromeManager` class for managing browser profiles and Playwright connections.
+- **`chrome_manager.py`**: The core `BrowserManager` class for managing browser profiles and Playwright connections.
 - **`example_usage_sync.py`**: A sample script demonstrating profile setup and browser automation for Facebook and Twitter.
 
 ### How It Works
@@ -106,7 +106,7 @@ The `ChromeManager` class provides methods to set up browser profiles, connect t
 
 - **Port in Use Error**:
   - If you see `Port 9222 is in use`, ensure no other Chrome instances are running with remote debugging enabled.
-  - Use a different `debug_port` in `ChromeManager` (e.g., `ChromeManager(debug_port=9223)`).
+  - Use a different `debug_port` in `BrowserManager` (e.g., `BrowserManager(debug_port=9223)`).
 
 - **Lingering Processes**:
   - The script uses `psutil` to kill all browser processes. If processes persist, check Task Manager (Windows) and share details.
