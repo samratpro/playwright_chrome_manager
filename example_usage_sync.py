@@ -1,9 +1,9 @@
-# from playwright_chrome_manager.chrome_manager import ChromeManager
-from chrome_manager import ChromeManager
+# from playwright_chrome_manager.chrome_manager import BrowserManager
+from playwright_browser_manager.browser_manager import BrowserManager
 import time
 
 debug_port=9221 # 9222, 9223
-manager = ChromeManager(debug_port=debug_port)
+manager = BrowserManager(debug_port=debug_port)
 
 # Check if profiles exist, setup/update if needed
 profile_name = "my_facebook_profile"
@@ -56,7 +56,7 @@ else:
 # manager.close_browser()
 
 
-with ChromeManager(debug_port=debug_port) as manager:
+with BrowserManager(debug_port=debug_port) as manager:
     page = manager.connect_to_browser(profile_name=profile_name, url="https://www.facebook.com")
     context = page.context
     search_page = context.new_page()
@@ -65,12 +65,13 @@ with ChromeManager(debug_port=debug_port) as manager:
     search_page.close()
     manager.close_browser()
 
-with ChromeManager(debug_port=debug_port) as manager:
+with BrowserManager(debug_port=debug_port) as manager:
     page = manager.connect_to_browser(profile_name=profile_name2, url="https://www.facebook.com")
     print("Page Title:", page.title())
     input("Press Enter to close the browser...")
     page.close()
     manager.close_browser()
+
 
 
 
