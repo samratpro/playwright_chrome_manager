@@ -6,10 +6,10 @@ import socket
 import psutil
 from playwright.sync_api import sync_playwright
 
-class ChromeManager:
+class BrowserManager:
     def __init__(self, base_profile_dir=None, browser_path=None, debug_port=9222):
         """
-        Initialize the ChromeManager.
+        Initialize the BrowserManager.
         :param base_profile_dir: Base directory for profile folders (default: ~/ChromeProfiles or C:\ChromeProfiles).
         :param browser_path: Path to browser executable (auto-detected if None).
         :param debug_port: Port for remote debugging (default: 9222).
@@ -348,5 +348,6 @@ class ChromeManager:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close_browser()
         return False
+
 
 
