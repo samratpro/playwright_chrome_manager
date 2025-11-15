@@ -27,11 +27,21 @@ class BrowserManager:
         self.process_pid = None
 
     def _find_browser_path(self):
-        """Find browser executable path with priority: Brave > Edge > Chrome > Chromium."""
+        """
+        Find browser executable with priority:
+            1. Brave
+            2. Comet
+            3. Edge
+            4. Chrome
+            5. Chromium
+        Returns the first existing path or prompts the user.
+        """
+        import sys
         system = platform.system()
         possible_paths = []
-
-        if system == "Darwin":  # macOS
+    
+        # --------------------------------------------------------------------- macOS
+        if system == "Darwin":
             possible_paths = [
                 # 1. Brave
                 "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
@@ -41,7 +51,7 @@ class BrowserManager:
                 os.path.expanduser("~/Applications/Comet Browser.app/Contents/MacOS/Comet Browser"),
                 # 3. Edge
                 "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
-                os.path.expanduser("~/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"),
+                os.path.expanduser("~/Applications/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"),
                 # 4. Chrome
                 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
                 os.path.expanduser("~/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
@@ -49,7 +59,9 @@ class BrowserManager:
                 "/Applications/Chromium.app/Contents/MacOS/Chromium",
                 os.path.expanduser("~/Applications/Chromium.app/Contents/MacOS/Chromium"),
             ]
-        elif system == "Windows":  # Windows
+    
+        # --------------------------------------------------------------------- Windows
+        elif system == "Windows":
             possible_paths = [
                 # 1. Brave
                 r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe",
@@ -63,16 +75,20 @@ class BrowserManager:
                 r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
                 r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
                 os.path.expanduser(r"~\AppData\Local\Microsoft\Edge\Application\msedge.exe"),
-                # 4. Chrome
+                # 4. Chrome (stable + beta + canary)
                 r"C:\Program Files\Google\Chrome\Application\chrome.exe",
                 r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
                 os.path.expanduser(r"~\AppData\Local\Google\Chrome\Application\chrome.exe"),
+                r"C:\Program Files\Google\Chrome Beta\Application\chrome.exe",
+                r"C:\Program Files\Google\Chrome Canary\Application\chrome.exe",
                 # 5. Chromium
                 r"C:\Program Files\Chromium\Application\chromium.exe",
                 r"C:\Program Files (x86)\Chromium\Application\chromium.exe",
                 os.path.expanduser(r"~\AppData\Local\Chromium\Application\chromium.exe"),
             ]
-        elif system == "Linux":  # Linux
+    
+        # --------------------------------------------------------------------- Linux
+        elif system == "Linux":
             possible_paths = [
                 # 1. Brave
                 "/usr/bin/brave-browser",
@@ -100,41 +116,46 @@ class BrowserManager:
                 "/usr/local/bin/chromium",
                 os.path.expanduser("~/.local/bin/chromium"),
             ]
-
-        # Debug: Print all paths being checked
-        print("Checking browser paths:")
-        for path in possible_paths:
-            exists = os.path.exists(path)
-            print(f"  - {path}: {'Found' if exists else 'Not found'}")
+    
+        # --------------------------------------------------------------------- Scan
+        print("\nScanning for browser executable (priority order)...", flush=True)
+        for p in possible_paths:
+            exists = os.path.exists(p)
+            print(f"  {'Found' if exists else 'Not found'} {p}", flush=True)
             if exists:
-                print(f"✅ Selected browser at: {path}")
-                return path
-
-        # If not found, prompt user
-        print("❌ Browser executable not found. Please input your browser path.")
-        if system == "Darwin":
-            print("Example: /Applications/Brave Browser.app/Contents/MacOS/Brave Browser")
-        elif system == "Windows":
-            print("Example: C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe")
-        else:  # Linux
-            print("Example: /usr/bin/brave-browser")
-
+                print(f"\nSELECTED: {p}\n", flush=True)
+                return p
+    
+        # --------------------------------------------------------------------- Prompt user
+        print("\nNo supported browser found in standard locations.", flush=True)
+        print("Please paste the **full path** to the executable (e.g. brave.exe, comet.exe, chrome.exe.exe, chrome.exe).", flush=True)
+        print("Tip: right-click the browser shortcut → Properties → copy the 'Target' field.\n", flush=True)
+    
         while True:
-            user_path = input("Enter browser path: ").strip().strip('"')
+            try:
+                user_path = input("BROWSER PATH: ").strip().strip('"\'')
+            except (EOFError, KeyboardInterrupt):
+                print("\nCancelled by user.", flush=True)
+                sys.exit(1)
+    
             if not user_path:
-                print("❌ Path cannot be empty. Please try again.")
+                print("Empty input – try again.", flush=True)
                 continue
+    
             if os.path.exists(user_path):
-                if any(user_path.lower().endswith(ext) for ext in ('brave', 'brave.exe', 'msedge', 'msedge.exe',
-                                                                   'chrome', 'chrome.exe', 'chromium', 'chromium.exe')):
-                    print(f"✅ Browser path verified: {user_path}")
+                name = os.path.basename(user_path).lower()
+                if any(exe in name for exe in ("brave", "comet", "msedge", "chrome", "chromium")):
+                    print(f"\nACCEPTED: {user_path}\n", flush=True)
                     return user_path
-                print("❌ Path should point to Brave, Edge, Chrome, or Chromium executable. Please try again.")
-                continue
-            print(f"❌ File not found at: {user_path}")
-            retry = input("Would you like to try again? (y/n): ").lower().strip()
-            if retry not in ['y', 'yes']:
-                raise FileNotFoundError("❌ Browser path not found. Exiting...")
+                else:
+                    print("File name does not look like a supported browser.", flush=True)
+            else:
+                print(f"File not found: {user_path}", flush=True)
+    
+            retry = input("Try another path? (y/n): ").strip().lower()
+            if retry not in ("y", "yes"):
+                print("No path provided – exiting.", flush=True)
+                sys.exit(1)
 
     def _is_port_open(self, port):
         """Check if the specified port is available."""
@@ -361,6 +382,7 @@ class BrowserManager:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close_browser()
         return False
+
 
 
 
