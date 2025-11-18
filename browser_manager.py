@@ -4,7 +4,9 @@ import time
 import platform
 import socket
 import psutil
+from playwright.async_api import async_playwright
 from playwright.sync_api import sync_playwright
+from proxy_config import detect_country, country_from_dataimpulse_username, FINGERPRINTS, DEFAULT_FINGERPRINT
 
 class BrowserManager:
     def __init__(self, base_profile_dir=None, browser_path=None, debug_port=9222):
@@ -39,7 +41,7 @@ class BrowserManager:
         import sys
         system = platform.system()
         possible_paths = []
-    
+
         # --------------------------------------------------------------------- macOS
         if system == "Darwin":
             possible_paths = [
@@ -59,7 +61,7 @@ class BrowserManager:
                 "/Applications/Chromium.app/Contents/MacOS/Chromium",
                 os.path.expanduser("~/Applications/Chromium.app/Contents/MacOS/Chromium"),
             ]
-    
+
         # --------------------------------------------------------------------- Windows
         elif system == "Windows":
             possible_paths = [
@@ -86,7 +88,7 @@ class BrowserManager:
                 r"C:\Program Files (x86)\Chromium\Application\chromium.exe",
                 os.path.expanduser(r"~\AppData\Local\Chromium\Application\chromium.exe"),
             ]
-    
+
         # --------------------------------------------------------------------- Linux
         elif system == "Linux":
             possible_paths = [
@@ -116,7 +118,7 @@ class BrowserManager:
                 "/usr/local/bin/chromium",
                 os.path.expanduser("~/.local/bin/chromium"),
             ]
-    
+
         # --------------------------------------------------------------------- Scan
         print("\nScanning for browser executable (priority order)...", flush=True)
         for p in possible_paths:
@@ -125,23 +127,24 @@ class BrowserManager:
             if exists:
                 print(f"\nSELECTED: {p}\n", flush=True)
                 return p
-    
+
         # --------------------------------------------------------------------- Prompt user
         print("\nNo supported browser found in standard locations.", flush=True)
         print("Please paste the **full path** to the executable (e.g. brave.exe, comet.exe, chrome.exe.exe, chrome.exe).", flush=True)
         print("Tip: right-click the browser shortcut → Properties → copy the 'Target' field.\n", flush=True)
-    
+
         while True:
             try:
                 user_path = input("BROWSER PATH: ").strip().strip('"\'')
             except (EOFError, KeyboardInterrupt):
                 print("\nCancelled by user.", flush=True)
+                user_path = None
                 sys.exit(1)
-    
+
             if not user_path:
                 print("Empty input – try again.", flush=True)
                 continue
-    
+
             if os.path.exists(user_path):
                 name = os.path.basename(user_path).lower()
                 if any(exe in name for exe in ("brave", "comet", "msedge", "chrome", "chromium")):
@@ -151,7 +154,7 @@ class BrowserManager:
                     print("File name does not look like a supported browser.", flush=True)
             else:
                 print(f"File not found: {user_path}", flush=True)
-    
+
             retry = input("Try another path? (y/n): ").strip().lower()
             if retry not in ("y", "yes"):
                 print("No path provided – exiting.", flush=True)
@@ -252,51 +255,172 @@ class BrowserManager:
             print(f"Failed to connect to browser: {e}")
             self.close_browser()
             raise
-            
-        async def connect_to_browser_async(self, profile_name, url=None, headless=False, timeout=60000):
-            """Start browser with the specified profile and connect via Playwright (async)."""
-            if not self.profile_exists(profile_name):
-                raise ValueError(f"Profile '{profile_name}' does not exist. Create it first.")
-            if not self._is_port_open(self.debug_port):
-                raise RuntimeError(f"Port {self.debug_port} is in use. Choose another port.")
-            user_data_dir = self.get_profile_path(profile_name)
-            args = [
-                self.browser_path,
-                f"--remote-debugging-port={self.debug_port}",
-                f"--user-data-dir={user_data_dir}",
-                "--no-first-run",
-                "--no-default-browser-check",
-                "--disable-features=BraveShields",
-                "--brave-ads-service-enabled=0",
-            ]
-            if headless:
-                args.append("--headless=new")
-            self.browser_process = subprocess.Popen(args, shell=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                                    stderr=subprocess.PIPE)
-            self.process_pid = self.browser_process.pid
-            print(f"✅ Browser started for profile '{profile_name}' (PID: {self.process_pid}).")
-    
-            # Wait a moment for browser to start
-            time.sleep(2)
-    
-            try:
-                self.playwright_instance = await async_playwright().start()
-                self.browser = await self.playwright_instance.chromium.connect_over_cdp(
-                    f"http://127.0.0.1:{self.debug_port}")
-                contexts = self.browser.contexts
-                if contexts and contexts[0].pages:
-                    self.page = contexts[0].pages[0]
-                else:
-                    self.page = await self.browser.new_page()
-    
-                if url:
-                    await self.page.goto(url, timeout=timeout)
-                    await self.page.wait_for_load_state('load', timeout=timeout)
-                return self.page
-            except Exception as e:
-                print(f"Failed to connect to browser: {e}")
-                await self.close_browser_async()
-                raise
+
+    async def connect_to_browser_async(self, profile_name, url=None, headless=False, timeout=60000):
+        """Start browser with the specified profile and connect via Playwright (async)."""
+        if not self.profile_exists(profile_name):
+            raise ValueError(f"Profile '{profile_name}' does not exist. Create it first.")
+        if not self._is_port_open(self.debug_port):
+            raise RuntimeError(f"Port {self.debug_port} is in use. Choose another port.")
+        user_data_dir = self.get_profile_path(profile_name)
+        args = [
+            self.browser_path,
+            f"--remote-debugging-port={self.debug_port}",
+            f"--user-data-dir={user_data_dir}",
+            "--no-first-run",
+            "--no-default-browser-check",
+            "--disable-features=BraveShields",
+            "--brave-ads-service-enabled=0",
+        ]
+        if headless:
+            args.append("--headless=new")
+        self.browser_process = subprocess.Popen(args, shell=False, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                                stderr=subprocess.PIPE)
+        self.process_pid = self.browser_process.pid
+        print(f"✅ Browser started for profile '{profile_name}' (PID: {self.process_pid}).")
+
+        # Wait a moment for browser to start
+        time.sleep(2)
+
+        try:
+            self.playwright_instance = await async_playwright().start()
+            self.browser = await self.playwright_instance.chromium.connect_over_cdp(
+                f"http://127.0.0.1:{self.debug_port}")
+            contexts = self.browser.contexts
+            if contexts and contexts[0].pages:
+                self.page = contexts[0].pages[0]
+            else:
+                self.page = await self.browser.new_page()
+
+            if url:
+                await self.page.goto(url, timeout=timeout)
+                await self.page.wait_for_load_state('load', timeout=timeout)
+            return self.page
+        except Exception as e:
+            print(f"Failed to connect to browser: {e}")
+            await self.close_browser_async()
+            raise
+
+    def _launch_browser_clean(self, profile_name, headless=False):
+        user_data_dir = os.path.join(self.base_profile_dir, profile_name)
+        args = [
+            self.browser_path,
+            f"--remote-debugging-port={self.debug_port}",
+            f"--user-data-dir={user_data_dir}",
+            "--no-first-run",
+            "--no-default-browser-check",
+        ]
+        if headless:
+            args.append("--headless=new")
+
+        self.browser_process = subprocess.Popen(args)
+        self.process_pid = self.browser_process.pid
+        time.sleep(5)
+
+    def _apply_anti_detection(self, context):
+        context.add_init_script("""
+            () => {
+                Object.defineProperty(navigator, 'webdriver', { get: () => false });
+                Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+                Object.defineProperty(navigator, 'plugins', { get: () => [1,2,3,4,5] });
+                Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 });
+                window.chrome = window.chrome || {};
+                delete navigator.__proto__.webdriver;
+            }
+        """)
+
+    def connect_to_browser_with_proxy(
+            self,
+            profile_name: str,
+            proxy: dict,
+            url: str = None,
+            headless: bool = False,
+            timeout: int = 60000
+    ):
+        self._launch_browser_clean(profile_name, headless=headless)
+
+        self.playwright = sync_playwright().start()
+        self.browser = self.playwright.chromium.connect_over_cdp(f"http://127.0.0.1:{self.debug_port}")
+
+        # Smart country detection
+        country = None
+        if "username" in proxy:
+            country = country_from_dataimpulse_username(proxy["username"])
+        if not country and proxy["server"]:
+            host = proxy["server"].split("://")[-1].split(":")[0]
+            country = detect_country(host)
+
+        fp = FINGERPRINTS.get(country, DEFAULT_FINGERPRINT)
+        print(f"Using fingerprint → Country: {country or 'US'} | Timezone: {fp['tz']} | Locale: {fp['locale']}")
+
+        context_args = {
+            "proxy": proxy,
+            "timezone_id": fp["tz"],
+            "locale": fp["locale"],
+            # "viewport": {"width": fp["res"][0], "height": fp["res"][1]},
+            "ignore_https_errors": True,
+        }
+
+        self.context = self.browser.new_context(**context_args)
+        self._apply_anti_detection(self.context)
+        self.page = self.context.new_page()
+
+        if url:
+            print(f"Going to {url}...")
+            self.page.goto(url, timeout=timeout)
+            self.page.wait_for_load_state("networkidle", timeout=timeout)
+
+        print("Browser ready with PERFECT proxy + fingerprint")
+        return self.page
+
+
+    async def connect_to_browser_async_with_proxy(
+            self,
+            profile_name: str,
+            proxy: dict,
+            url: str = None,
+            headless: bool = False,
+            timeout: int = 60000
+    ):
+        """
+        Async version of connect_to_browser_with_proxy
+        Perfect for asyncio scripts, concurrent scraping, etc.
+        """
+        self._launch_browser_clean(profile_name, headless=headless)
+
+        self.playwright = await async_playwright().start()
+        self.browser = await self.playwright.chromium.connect_over_cdp(f"http://127.0.0.1:{self.debug_port}")
+
+        # Smart country detection (DataImpulse + fallback to IP)
+        country = None
+        if "username" in proxy:
+            country = country_from_dataimpulse_username(proxy["username"])
+        if not country and proxy.get("server"):
+            host = proxy["server"].split("://")[-1].split(":")[0].split("@")[-1]
+            country = detect_country(host)
+
+        fp = FINGERPRINTS.get(country, DEFAULT_FINGERPRINT)
+        print(f"[Async] Using fingerprint → Country: {country or 'US'} | Timezone: {fp['tz']} | Locale: {fp['locale']}")
+
+        context_args = {
+            "proxy": proxy,
+            "timezone_id": fp["tz"],
+            "locale": fp["locale"],
+            "viewport": {"width": fp["res"][0], "height": fp["res"][1]},
+            "ignore_https_errors": True,
+        }
+
+        self.context = await self.browser.new_context(**context_args)
+        self._apply_anti_detection(self.context)
+        self.page = await self.context.new_page()
+
+        if url:
+            print(f"[Async] Going to {url}...")
+            await self.page.goto(url, timeout=timeout)
+            await self.page.wait_for_load_state("networkidle", timeout=timeout)
+
+        print("[Async] Browser ready with proxy + perfect fingerprint spoofing")
+        return self.page
 
     def close_browser(self):
         """Close the browser and clean up all resources."""
@@ -337,44 +461,46 @@ class BrowserManager:
             self.process_pid = None
         print("✅ Browser closed.")
 
-        async def close_browser_async(self):
-            """Close the browser and clean up all resources (async)."""
-            if self.page:
+    async def close_browser_async(self):
+        """Close the browser and clean up all resources (async)."""
+        if self.page:
+            try:
+                await self.page.close()
+                print("Closed page")
+            except Exception as e:
+                print(f"Error closing page: {e}")
+            self.page = None
+        if self.browser:
+            try:
+                await self.browser.close()
+                print("Closed Playwright browser instance")
+            except Exception as e:
+                print(f"Error closing browser: {e}")
+            self.browser = None
+        if self.playwright_instance:
+            try:
+                await self.playwright_instance.stop()
+                print("Stopped Playwright instance")
+            except Exception as e:
+                print(f"Error stopping Playwright: {e}")
+            self.playwright_instance = None
+        if self.browser_process and self.process_pid:
+            try:
+                self._kill_child_processes(self.process_pid)
+            except Exception as e:
+                print(f"Error killing browser process: {e}")
+            finally:
                 try:
-                    await self.page.close()
-                    print("Closed page")
-                except Exception as e:
-                    print(f"Error closing page: {e}")
-                self.page = None
-            if self.browser:
-                try:
-                    await self.browser.close()
-                    print("Closed Playwright browser instance")
-                except Exception as e:
-                    print(f"Error closing browser: {e}")
-                self.browser = None
-            if self.playwright_instance:
-                try:
-                    await self.playwright_instance.stop()
-                    print("Stopped Playwright instance")
-                except Exception as e:
-                    print(f"Error stopping Playwright: {e}")
-                self.playwright_instance = None
-            if self.browser_process and self.process_pid:
-                try:
-                    self._kill_child_processes(self.process_pid)
-                except Exception as e:
-                    print(f"Error killing browser process: {e}")
-                finally:
-                    try:
-                        self.browser_process.stdin.close()
-                        self.browser_process.stdout.close()
-                        self.browser_process.stderr.close()
-                    except Exception:
-                        pass
-                self.browser_process = None
-                self.process_pid = None
-            print("✅ Browser closed.")
+                    self.browser_process.stdin.close()
+                    self.browser_process.stdout.close()
+                    self.browser_process.stderr.close()
+                except Exception:
+                    pass
+            self.browser_process = None
+            self.process_pid = None
+        print("✅ Browser closed.")
+
+
 
     def __enter__(self):
         return self
